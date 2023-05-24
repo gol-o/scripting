@@ -14,7 +14,7 @@ setInterval(() => {
     else if (angle < 80)
         document.write("■".repeat(Math.abs(50 * Math.cos(angle * 6 * Math.PI / 180))) + "<p>");
     else if (angle < 120)
-        document.write("■".repeat(Math.abs(50 * Math.tan(angle * 6 * Math.PI / 180))) + "<p>");
+        document.write("■".repeat(Math.abs(50 * Math.tan(angle * 6 * Math.PI / 180) % 50)) + "<p>");
     else
         document.write("■".repeat(Math.abs(50 * 1 / Math.tan(angle * 6 * Math.PI / 180) % 50)) + "<p>");
     
