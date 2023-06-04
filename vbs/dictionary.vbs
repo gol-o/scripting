@@ -222,13 +222,18 @@ set c = createobject( "scripting.dictionary" )
 set d = createobject( "scripting.dictionary" )
 set e = createobject( "scripting.dictionary" )
 
-sub layertraverse( dic, ws ) ' ws: whitespace indentation
+sub layertraverse( dic, ws )
     if typename( dic ) <> "Dictionary" then ' default binary comparison
         wscript.stdout.write dic & " "
         exit sub
     end if
 
-    wscript.echo space( ws ) , "("
+    ' ws: whitespace indentation
+    if ws > 0 then wscript.echo
+    wscript.stdout.write space( ws ) + "("
+    wscript.echo
+    ws = ws + 2
+    wscript.stdout.write space( ws )
 
     for each e in dic
         wscript.stdout.write e & ":"
@@ -236,7 +241,10 @@ sub layertraverse( dic, ws ) ' ws: whitespace indentation
     next
 
     wscript.echo
-    wscript.stdout.write ")"
+    ws = ws - 2
+    wscript.stdout.write space( ws ) + ")"
+    wscript.echo
+    wscript.stdout.write space( ws )
 end sub
 
 a.add 1, "a1"
@@ -258,4 +266,5 @@ e.add 1, "e1"
 e.add 2, "e2"
 e.add 3, "e3"
 
-layertraverse a, 2
+layertraverse a, 0
+wscript.echo
