@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+<title>Formularelemente</title>
+
+<script language="VBScript">
+<!--
+'global Const
+Const StdPath = "C:\Dokumente und Einstellungen\Admin\Desktop\"
+
+'------------------------------------------------------
+' Formular initialisieren (Body onLoad-Event)
+'------------------------------------------------------
+Function Init()
+    Document.Form1.DestPath.Value=StdPath
+    Document.Form1.Password.Value="*****"
+End Function
+  
+'user-defined IIf( ) function
+Function IIf( expr, truepart, falsepart )
+    IIf = falsepart
+    If expr Then IIf = truepart
+End Function
+
+'------------------------------------------------------
+' Verzeichnis erstellen 
+'------------------------------------------------------
+Function MakeFolder() 'vbscript keine Übergabe mit "this.form" im Formularfeld möglich
+    On Error Resume Next
+    Err.Clear 
+    Dim Folder, SubFolder
+    With Document.Form1
+    	Folder = .DestPath.Value
+	Folder = Folder & IIf(Right(Folder,1) <> "\", "\", "") 'falls "\" fehlt, anfügen
+    	Folder = Folder & UCase(.SelDepart.options(.SelDepart.SelectedIndex).Text)
+    End With
+    Dim fso, fldr
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set fldr = fso.CreateFolder(Folder)     
+    If Err.number <> 0 Then MsgBox("Cannot create Folder!")
+End Function
+
+'------------------------------------------------------
+' Verzeichnis löschen
+'------------------------------------------------------
+Function EraseFolder()
+    On Error Resume Next
+    Err.Clear
+    Dim fso, Folder
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    With Document.Form1
+	Folder = .DestPath.Value
+	fso.DeleteFolder(Folder & .SelDepart.options(.SelDepart.SelectedIndex).Text)
+    End With
+    If Err.number <> 0 Then MsgBox("Cannot delete Folder!") 
+End Function
+
+-->
+</script>
+
+</head>
+<body onload="vbscript:Init()">
+
+<form name="Form1">
+Abteilung<br>
+<select size="6" name="SelDepart">
+<option>Buchhaltung</option>
+<option>Entwicklung</option>
+<option>Marketing</option>
+<option>Produktion</option>
+
+</select><br><br>
+Zielpfad
+<input type="text" name="DestPath" size="50"/>
+<p>
+Passwort
+<input type="password" name="Password"/></p>
+<p>
+<input type="button" value="Verzeichnis erstellen" onclick="vbscript:MakeFolder()"/></p>
+<p>
+<input type="button" value="Verzeichnis löschen" onclick="vbscript:EraseFolder()"/>
+</p>
+<input type="reset" name="Button" value="Reset"/>
+</form>
+
+</body>
+</html>

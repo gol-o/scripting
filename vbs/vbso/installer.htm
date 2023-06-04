@@ -1,0 +1,219 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>OfflineInstaller 1.0.1</title>
+
+<script language="VBScript">
+<!--
+'global Const
+Const host = "http://sourcefiles.ifastnet.com/"
+Const StdPath = "C:\Dokumente und Einstellungen\Admin\Desktop\"
+
+'------------------------------------------------------
+' Formular initialisieren (Body onLoad-Event)
+'------------------------------------------------------
+Function Init()
+    Document.Form1.DestPath.Value=StdPath
+    Document.Form1.Password.Value="*****"
+End Function
+
+'user-defined IIf( ) function
+Function IIf( expr, truepart, falsepart )
+    IIf = falsepart
+    If expr Then IIf = truepart
+End Function
+
+'------------------------------------------------------
+' Filetransfer
+'------------------------------------------------------
+Function Transfer() 'vbscript keine Übergabe mit "this.form" im Formularfeld möglich
+                    'javascript ermöglicht die Übergabe einer Formularreferenz
+    Dim Folder, SubFolder
+    With Document.Form1
+        Folder = .DestPath.Value
+        Folder = Folder & IIf(Right(Folder,1) <> "\", "\", "") 'falls "\" fehlt anfügen
+        SubFolder = SubDir(.SelCourse.SelectedIndex) & "sources"
+
+        'Dozentenordner erstellen
+        MakeFolder(Folder & "DOZENT") 
+
+       'Kursordner erstellen 
+        Folder = Folder & UCase(.SelCourse.options(.SelCourse.SelectedIndex).Text) &  "KURS\" 'Ordner in Grossbuchstaben
+        MakeFolder(Folder)
+        MakeFolder(Folder & "Coursefiles\")
+        MakeFolder(Folder & "Coursefiles\" & SubFolder)
+
+        'Imageordner erstellen
+        MakeFolder(Folder & "Images")
+    End With
+
+    Dim File
+    'Verzeichnis laden
+    For Each File In ReadWebDirectory( host & "Coursefiles/" & SubFolder )
+        'File downloaden
+        Call Download( File, host & "Coursefiles/" & SubFolder, Folder & "Coursefiles\" & SubFolder )
+    Next
+End Function
+
+'------------------------------------------------------
+' Verzeichnis erstellen 
+'------------------------------------------------------
+Function MakeFolder(f_name)
+    On Error Resume Next
+    Err.Clear
+    Dim fso, fldr
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set fldr = fso.CreateFolder(f_name)
+    If Err.number <> 0 Then MsgBox("Cannot create Folder!")
+End Function
+
+'------------------------------------------------------
+' Verzeichnis/Unterverzeichnis(se) löschen
+'------------------------------------------------------
+Function EraseFolder()
+    On Error Resume Next
+    Err.Clear
+    Dim fso, Folder
+    Set fso = CreateObject("Scripting.FileSystemObject") 
+    With Document.Form1
+        Folder = .DestPath.Value
+        fso.DeleteFolder(Folder & .SelCourse.options(.SelCourse.SelectedIndex).Text &  "KURS")
+        fso.DeleteFolder(Folder & "DOZENT")
+    End With
+    If Err.number <> 0 Then MsgBox("Cannot delete Folder!")
+End Function
+
+'------------------------------------------------------
+' Präfix für das Subdirectory ermitteln
+'------------------------------------------------------
+Function SubDir(selIndex)
+    Select Case selIndex
+        Case 0 : SubDir = "acc"
+        Case 1 : SubDir = "xl"
+        Case 2 : SubDir = "ppt"
+        Case 3 : SubDir = "wrd"
+        Case 4 : SubDir = "c"
+        Case 5 : SubDir = "cpp"
+        Case 6 : SubDir = "cs"
+        Case 7 : SubDir = "jav"
+        Case 8 : SubDir = "vb"
+        Case 9 : SubDir = "vbn"
+        Case 10 : SubDir = "js"
+        Case 11 : SubDir = "vbs"
+        Case 12 : SubDir = "php"
+    End Select
+End Function
+
+'------------------------------------------------------
+' Verzeichnis auf dem Server holen
+' und aufbereiten
+'------------------------------------------------------
+Function ReadWebDirectory(SourcePath)
+    On Error Resume Next
+    Err.Clear 
+    Dim oXML, strResponse
+
+    Set oXML = CreateObject("MSXML2.XMLHTTP") 'an ActiveX component that  performs HTTP requests
+
+    With oXML
+        .Open "GET", SourcePath, False
+        .Send
+        strResponse = .ResponseText  'returns the body of the response as an array
+        If Err.number <> 0 Or .status <> 200 Then Exit Function
+    End With
+
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    ' Filenamen extrahieren
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    Set oRegExp = New RegExp
+    oRegExp.Pattern = "href\s*=\s*""[^""?\/=]+"""
+    oRegExp.IgnoreCase = True
+    oRegExp.Global = True
+    Set Matches = oRegExp.Execute(strResponse)
+    Dim DirList(), i
+    i=0
+    Redim DirList(Matches.count-1)
+
+    For Each Match in Matches
+        'Array aufbauen, Leerzeichen, href und " entfernen
+        DirList(i) = Replace(Replace(Replace(Match.Value," ",""),"href=",""), Chr(34), "")
+        i=i+1
+    Next
+    ReadWebDirectory = DirList
+End Function
+
+'------------------------------------------------------
+' HTTP Download
+'------------------------------------------------------
+Sub  Download( File, SourcePath, DestPath )
+    Dim  Response
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    ' Read Data
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+   Err.Clear
+    With CreateObject("MSXML2.XMLHTTP")
+        .Open "GET", SourcePath & "/" & File, False 
+        .Send
+        Response = .ResponseBody 'returns the body of the response as an array
+
+        If Err.number <> 0 Or .status <> 200 Then MsgBox("Error reading Data!"):Exit Sub
+    End With
+
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    ' Write Data
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    Const adTypeBinary = 1
+    Const adSaveCreateOverwrite = 2
+    Const adModeReadWrite  = 3
+
+    Set oStream = CreateObject("ADODB.Stream")
+      Err.Clear
+    With oStream
+        .Type = adTypeBinary
+        .Mode = adModeReadWrite
+        .Open
+        .Write Response
+        .SaveToFile DestPath & "\" & File, adSaveCreateOverwrite
+        .Close
+    End With
+      If Err.number <> 0 Or .status <> 200 Then MsgBox("Error writing Data!"):Exit Sub
+End Sub
+-->
+</script>
+
+</head>
+<body onload="vbscript:Init()">
+
+<form name="Form1">
+Kurs<br>﻿
+<select size="13" name="SelCourse">
+<option>Access</option>
+<option>Excel</option>
+<option>Powerpoint</option>
+<option>Word</option>
+<option>C</option>
+<option>C++</option>
+<option>C#</option>
+<option>Java</option>
+<option>VB</option>
+<option>VB.NET</option>
+<option>JavaScript</option>
+<option>VBScript</option>
+<option>PHP</option>
+</select><br><br>
+Zielpfad
+<input type="text" name="DestPath" size="50"/>
+<p>
+Passwort
+<input  type="password" name="Password"/></p>
+<p>
+<input  type="button" value="Transfer" onclick="vbscript:Transfer()"/></p>
+<p>
+<input type="button" value="Verzeichnisse löschen" onclick="vbscript:EraseFolder()"/>
+</p>
+<input type="reset" name="Button" value="Reset"/>
+<p>&nbsp;</p>
+</form>
+
+</body>
+</html>
