@@ -1,1 +1,1 @@
-Set-WinUserLanguageList -LanguageList en-US -Force
+Set-WinUserLanguageList -LanguageList 'en-US' -Force
